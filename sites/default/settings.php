@@ -245,14 +245,14 @@
  * @endcode
  */
 $databases = array (
-  'default' => 
+  'default' =>
   array (
-    'default' => 
+    'default' =>
     array (
-      'database' => 'alumnidb',
-      'username' => 'alumni',
-      'password' => '87kCTY3ledyFvXimskoC',
-      'host' => 'localhost',
+      'database' => 'alumni_portal',
+      'username' => 'alumni_portal',
+      'password' => 'alumni.2017',
+      'host' => '147.172.96.41',
       'port' => '',
       'driver' => 'mysql',
       'prefix' => '',
@@ -290,7 +290,7 @@ $update_free_access = FALSE;
  *   $drupal_hash_salt = file_get_contents('/home/example/salt.txt');
  *
  */
-$drupal_hash_salt = '1PdZJ_l9NNmxQ7xsWPPQMCbaidePKYNpPkHe3CCOlCY';
+$drupal_hash_salt = 'HFF-bNB5ZNTSTnWV_8MHX-8uIcMz5aI9TyBXRBoIIrM';
 
 /**
  * Base URL (optional).

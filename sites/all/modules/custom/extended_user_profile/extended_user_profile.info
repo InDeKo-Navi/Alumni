@@ -1,0 +1,6 @@
+name = Extended User Profile
+description = Extend the user profile for Alumni Portal
+core = 7.x
+
+stylesheets[all][] = css/tabs.css
+scripts[] = js/custom.js
