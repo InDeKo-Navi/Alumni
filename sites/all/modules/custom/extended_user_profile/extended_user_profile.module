@@ -1,75 +1,66 @@
 <?php
 
-/*function extended_user_profile_menu() {
-    $items['user/%/gallery'] = array(
-        'title' => t('User Photo'),
-        'page callback' => 'mymodule_photogallery',
-        'page arguments' => array(1),
-        'access arguments' => array('access content'),
-        'type'          => MENU_LOCAL_TASK,
+/**
+ * Implements hook_theme().
+ */
+/*function extended_user_profile_theme() {
+    return array(
+        'extended_user_profile_thumb_upload' => array(
+            'render element' => 'element',
+        )
     );
-
-    return $items;
 }*/
 
 function extended_user_profile_menu() {
-    $items = array();
 
+    $schema = extended_user_profile_dbschema();
+    if(!db_table_exists('extended_user_profile')) {
+        db_create_table('extended_user_profile', $schema['extended_user_profile']);
+    }
+
+    if(!db_table_exists('extended_user_profile_cv')) {
+        db_create_table('extended_user_profile_cv', $schema['extended_user_profile_cv']);
+    }
+
+    $items = array();
 
     $items['user/%user_uid/userprofile'] = array( //this creates a URL that will call this form at "examples/form-example"
         'title' => t('Nutzerprofil'), //page title
+        'page callback' => 'display_userprofile', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+        'page arguments' => array(1), //put the name of the form here
+        'access callback' => 'user_is_logged_in',
+        'menu_name' => 'main-menu',
+        'file' => 'display_userprofile.pages.inc',
+    );
+
+    $items['user/%user_uid/userprofile/edit'] = array( //this creates a URL that will call this form at "examples/form-example"
+        'title' => t('Nutzerprofil bearbeiten'), //page title
         'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
         'page arguments' => array('extended_user_profile_form', 1), //put the name of the form here
         'access callback' => 'user_is_logged_in',
+        'file' => 'edit_userprofile.pages.inc',
         'menu_name' => 'main-menu',
+        'type' => MENU_SUGGESTED_ITEM,
     );
 
     $items['user/%user_uid/usercv'] = array( //this creates a URL that will call this form at "examples/form-example"
         'title' => t('Lebenslauf'), //page title
         'description' => 'A form to mess around with.',
         'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
-        'page arguments' => array('extended_user_profile_form'), //put the name of the form here
+        'page arguments' => array('extended_user_profile_cv_form'), //put the name of the form here
         'access callback' => 'user_is_logged_in',
         'menu_name' => 'main-menu',
     );
 
-    /*$items['user/%user_uid/userprofile/general'] = array( //this creates a URL that will call this form at "examples/form-example"
-        'title' => t('Allgemein'), //page title
-        'type' => MENU_DEFAULT_LOCAL_TASK,
-    );
-
-    $items['user/%user_uid/userprofile/contactdetails'] = array( //this creates a URL that will call this form at "examples/form-example"
-        'title' => t('Kontaktdaten'), //page title
-        'type' => MENU_LOCAL_TASK,
+    $items['user/%user_uid/usercv/edit'] = array( //this creates a URL that will call this form at "examples/form-example"
+        'title' => t('Lebenslauf bearbeiten'), //page title
         'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
-        'page arguments' => array('extended_user_profile_general_form'), //put the name of the form here
+        'page arguments' => array('extended_user_profile_cv_form', 1), //put the name of the form here
         'access callback' => 'user_is_logged_in',
+        'file' => 'edit_usercv.pages.inc',
+        'menu_name' => 'main-menu',
+        'type' => MENU_SUGGESTED_ITEM,
     );
-
-    $items['user/%user_uid/userprofile/contactpreference'] = array( //this creates a URL that will call this form at "examples/form-example"
-        'title' => t('Kontaktpräferenz'), //page title
-        'type' => MENU_LOCAL_TASK,
-        'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
-        'page arguments' => array('extended_user_profile_general_form'), //put the name of the form here
-        'access callback' => 'user_is_logged_in',
-    );
-
-    $items['user/%user_uid/userprofile/personal'] = array( //this creates a URL that will call this form at "examples/form-example"
-        'title' => t('Persönliches'), //page title
-        'type' => MENU_LOCAL_TASK,
-        'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
-        'page arguments' => array('extended_user_profile_general_form'), //put the name of the form here
-        'access callback' => 'user_is_logged_in',
-    );
-
-    $items['user/%user_uid/userprofile/others'] = array( //this creates a URL that will call this form at "examples/form-example"
-        'title' => t('Sonstiges'), //page title
-        'type' => MENU_LOCAL_TASK,
-        'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
-        'page arguments' => array('extended_user_profile_general_form'), //put the name of the form here
-        'access callback' => 'user_is_logged_in',
-    );
-    */
 
     return $items;
 }
@@ -82,244 +73,243 @@ function user_uid_to_arg($arg) {
 }
 
 
-function extended_user_profile_form($form, &$form_state, $user_id) {
-
-    $user = user_load($user_id);
-    if(!$user){
-        drupal_not_found();
-        drupal_exit();
-    }
-
-    $tabsHTML =
-        '<div class="tab">' .
-        '<a class="tablinks active" target="general">' . t('Allgemein') . '</a>' .
-        '<a class="tablinks" target="contact-preference">' . t('Kontaktpräferenz') . '</a>' .
-        '<a class="tablinks" target="personal">' . t('Persönlich') . '</a>' .
-        '<a class="tablinks" target="others">' . t('Sonstiges') . '</a>' .
-        '</div>';
-
-    $form['tabarea'] = array(
-        '#markup' => $tabsHTML,
-    );
-
-    $form['general-start'] = array(
-        '#markup' => '<div id="general" class="tabcontent">',
-    );
-
-
-    //Nutzerprofil Allgemein
-
-    $form['general-headline'] = array(
-        '#markup' => '<h3>' . t('Allgemein') . '</h3>',
-    );
-
-    $form['firstname'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
-        '#required' => TRUE,
-        '#size' => 20,
-    );
-
-    $form['lastname'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
-        '#required' => TRUE,
-        '#size' => 20,
-    );
-
-    $form['jf-project'] = array(
-        '#type' => 'select', //you can find a list of available types in the form api
-        '#title' => t('Jugend Forscht Projekt auswählen'),
-        '#options' => array(
-            0 => t('- Kein Projekt -'),
-            1 => t('Projekt 1'),
-            2 => t('Projekt 2'),
-            3 => t('Projekt 3'),
+function extended_user_profile_dbschema() {
+    $schema = array();
+    $schema['extended_user_profile'] = array(
+        'description' => 'The table for extended_user_profile',
+        'fields' => array(
+            'user_id' => array(
+                'type' => 'int',
+                'not null' => TRUE,
+                'default' => 0
+            ),
+            'image_id' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'default' => 0,
+            ),
+            'first_name' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'last_name' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'jufo_projects' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'other_projects' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'visited_schools' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'city' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'zip_code' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'default' => 0,
+            ),
+            'telephone' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'other_profiles' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'check_email' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'length' => 1,
+                'default' => 0,
+            ),
+            'check_post' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'length' => 1,
+                'default' => 0,
+            ),
+            'check_telephone' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'length' => 1,
+                'default' => 0,
+            ),
+            'birthday_day' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'default' => 0,
+            ),
+            'birthday_month' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'default' => 0,
+            ),
+            'birthday_year' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'default' => 0,
+            ),
+            'gender' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'hobbies' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'interests' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'received_awards' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'organisations' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
         ),
-        '#default_value' => 0,
     );
 
-    $form['visted-school'] = array(
-        '#type' => 'select', //you can find a list of available types in the form api
-        '#title' => t('Besuchte Schule auswählen'),
-        '#options' => array(
-            0 => t('- Keine Schule -'),
-            1 => t('Schule A'),
-            2 => t('Schule B'),
-            3 => t('Schule C'),
-        ),
-        '#default_value' => 0,
+    $schema['extended_user_profile_cv'] = array(
+        'description' => 'The table for extended_user_profile_cv',
+        'fields' => array(
+            'user_id' => array(
+                'type' => 'int',
+                'not null' => TRUE,
+                'default' => 0
+            ),
+            'image_id' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'default' => 0,
+            ),
+            'salutation' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'title' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'first_name' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'last_name' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'birthday_day' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'default' => 0,
+            ),
+            'birthday_month' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'default' => 0,
+            ),
+            'birthday_year' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'default' => 0,
+            ),
+            'email' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'city' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'zip_code' => array(
+                'type' => 'int',
+                'not null' => FALSE,
+                'default' => 0,
+            ),
+            'telephone' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+
+            'practical_experience' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'education' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'language_skills' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+            'special_knowledge' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+                'default' => ''
+            ),
+
+        )
     );
 
-    //Nutzerprofil Kontaktdaten
-
-    $form['contactdetails-headline'] = array(
-        '#markup' => '<h3>' . t('Kontaktdaten') . '</h3>',
-    );
-
-    $form['city'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
-        '#title' => t('Wohnort'),
-        '#size' => 20,
-    );
-
-    $form['zip-code'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
-        '#title' => t('PLZ'),
-        '#size' => 20,
-    );
-
-    $form['telephone'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
-        '#title' => t('Telefon/Mobil'),
-        '#size' => 20,
-    );
-
-    $form['other-profiles'] = array(
-        '#markup' => '<b>' . t('Weitere Profile') . ':</b>',
-    );
-
-    $form['choose-portal'] = array(
-        '#type' => 'select', //you can find a list of available types in the form api
-        '#title' => t('Portal'),
-        '#options' => array(
-            0 => t('Facebook'),
-            1 => t('Twitter'),
-            2 => t('Snapchat'),
-            3 => t('Instagram'),
-        ),
-        '#default_value' => 0,
-    );
-
-    $form['portal-link'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
-        '#title' => t('Link zum Profil'),
-
-    );
-
-    $form['general-end'] = array(
-        '#markup' => '</div>',
-    );
-
-    //Nutzerprofil Kontaktpräferenz
-
-    $form['contactpreference-start'] = array(
-        '#markup' => '<div id="contact-preference" class="tabcontent">',
-    );
-
-    $form['contactpreference-headline'] = array(
-        '#markup' => t('Über folgende Kanäle darf Kontakt zu mir aufgenommen werden'),
-    );
-
-    $form['check-mail'] = array(
-        '#type' => 'checkbox',
-        '#title' => t('E-Mail'),
-    );
-
-    $form['check-post'] = array(
-        '#type' => 'checkbox',
-        '#title' => t('Post'),
-    );
-
-    $form['check-telephone'] = array(
-        '#type' => 'checkbox',
-        '#title' => t('Telefon/Mobil'),
-    );
-
-    $form['contactpreference-end'] = array(
-        '#markup' => '</div>',
-    );
-
-    //Nutzerprofil Persönlich
-    $form['personal-start'] = array(
-        '#markup' => '<div id="personal" class="tabcontent">',
-    );
-
-    $form['birthday'] = array(
-        '#type' => 'date',
-        '#title' => t('Geburtsdatum'),
-    );
-
-    $active = array(0 => t('männlich'), 1 => t('weiblich'));
-    $form['gender'] = array(
-        '#type' => 'radios',
-        '#title' => t('Geschlecht'),
-        '#options' => $active,
-    );
-
-    $form['hobbies'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
-        '#title' => t('Hobbies'),
-    );
-
-    $form['interests'] = array(
-        '#type' => 'select', //you can find a list of available types in the form api
-        '#title' => t('Interessen'),
-        '#options' => array(
-            0 => t('Betriebswirtschaft'),
-            1 => t('Humanwissenschaften'),
-            2 => t('Informatik'),
-            3 => t('Kulturwissenschaften'),
-            4 => t('Naturwissenschaften'),
-            5 => t('Philosophie'),
-            6 => t('Physik'),
-            7 => t('Politikwissenschaften'),
-            8 => t('Psychologie'),
-        ),
-        '#default_value' => 0,
-    );
-
-    $form['personal-end'] = array(
-        '#markup' => '</div>',
-    );
-
-    //Nutzerprofil Others
-    $form['others-start'] = array(
-        '#markup' => '<div id="others" class="tabcontent">',
-    );
-
-    $form['awards'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
-        '#title' => t('Erhaltene Auszeichnungen'),
-    );
-
-    $form['organisations'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
-        '#title' => t('Organisationen'),
-    );
-
-    $form['others-end'] = array(
-        '#markup' => '</div>',
-    );
-
-    $form['save_button'] = array(
-        '#type' => 'submit',
-        '#value' => t('Speichern'),
-    );
-
-    return $form;
-
-}
-
-function extended_user_profile_form_alter(&$form, &$form_state, $form_id) {
-    if ($form_id == 'extended_user_profile_form') {
-        $form['firstname']['#attributes']['placeholder'] = t('Vorname');
-        $form['lastname']['#attributes']['placeholder'] = t('Nachname');
-
-        $form['awards']['#attributes']['placeholder'] = t('z.B. eine Auszeichnung für "Jugend Forscht" Projekte erhalten');
-        $form['organisations']['#attributes']['placeholder'] = t('z.B. Engagement bei der freiwilligen Feuerwehr');
-
-
-
-        //$form['#prefix'] = $tabsHTML;
-        //$form['#suffix'] = '</div>';
-    }
-}
-
-
-function extended_user_profile_general_form_validate($form, &$form_state) {
-    if (!($form_state['values']['price'] > 0)){
-        form_set_error('price', t('Price must be a positive number.'));
-    }
-}
-
-function extended_user_profile_general_form_submit($form, &$form_state) {
+    return $schema;
 }
