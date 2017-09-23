@@ -104,16 +104,18 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     $form['firstname'] = array(
         '#type' => 'textfield', //you can find a list of available types in the form api
         '#title' => t('Vorname'),
-        '#size' => 20,
         '#prefix' => '<br><hr><br>',
         '#default_value' => (isset($result['first_name']) && !empty($result['first_name'])) ? $result['first_name'] : '',
+        '#prefix' => '<div class="left-floated-element">',
+        '#suffix' => '</div>',
     );
 
     $form['lastname'] = array(
         '#type' => 'textfield', //you can find a list of available types in the form api
         '#title' => t('Nachname'),
-        '#size' => 20,
         '#default_value' => (isset($result['last_name']) && !empty($result['last_name'])) ? $result['last_name'] : '',
+        '#prefix' => '<div class="left-floated-element">',
+        '#suffix' => '</div><div class="clear-float"></div>',
     );
 
     $form['jf_projects'] = array(
@@ -300,21 +302,22 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     $form['city'] = array(
         '#type' => 'textfield', //you can find a list of available types in the form api
         '#title' => t('Wohnort'),
-        '#size' => 20,
         '#default_value' => (isset($result['city']) && !empty($result['city'])) ? $result['city'] : '',
+        '#prefix' => '<div class="left-floated-element">',
+        '#suffix' => '</div>',
     );
 
     $form['zip_code'] = array(
         '#type' => 'textfield', //you can find a list of available types in the form api
         '#title' => t('PLZ'),
-        '#size' => 20,
         '#default_value' => (isset($result['zip_code']) && $result['zip_code'] != 0) ? $result['zip_code'] : '',
+        '#prefix' => '<div class="left-floated-element">',
+        '#suffix' => '</div><div class="clear-float"></div>',
     );
 
     $form['telephone'] = array(
         '#type' => 'textfield', //you can find a list of available types in the form api
         '#title' => t('Telefon/Mobil'),
-        '#size' => 20,
         '#default_value' => (isset($result['telephone']) && !empty($result['telephone'])) ? $result['telephone'] : '',
     );
 
@@ -334,30 +337,31 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
             if (count($otherProfiles) != 0) {
                 $index = 0;
 
-                foreach ($otherProfiles as $key => $value) {
-                    create_other_profile($form, $index, array('choose_portal' => t($key), 'portal_link' => t($value)));
+                for ($i = 0; $i < count($otherProfiles); $i++) {
+                //foreach ($otherProfiles as $key => $value) {
+                    create_other_profile($form, $i, $otherProfiles[$i]);
                     $index++;
                 }
 
             } else {
-                create_other_profile($form, 0, array('choose_portal' => '', 'portal_link' => ''));
+                create_other_profile($form, 0, null);
             }
 
         } else {
-            create_other_profile($form, 0, array('choose_portal' => '', 'portal_link' => ''));
+            create_other_profile($form, 0, null);
         }
     } else {
 
 
         // Otherwise add the fields for each existing value.
         foreach ($form_state['values']['other_profiles'] as $i => $value) {
-            create_other_profile($form, $i, array('choose_portal' => '', 'portal_link' => ''));
+            create_other_profile($form, $i, null);
         }
 
         if ($form_state['clicked_button']['#name'] == 'other_profiles_add') {
             // Add the additional fields for a new entry.
             $last = count($form_state['values']['other_profiles']);
-            create_other_profile($form, $last, array('choose_portal' => '', 'portal_link' => ''));
+            create_other_profile($form, $last, null);
         }
     }
 
@@ -414,10 +418,62 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#markup' => '<div id="personal" class="tabcontent">',
     );
 
+    $days = array(SELECT_DEFAULT => SELECT_DEFAULT);
+    for ($i = 1; $i <= 31; $i++) {
+        $days[strval($i)] = strval($i);
+    }
+
+    $months = array(
+        SELECT_DEFAULT => SELECT_DEFAULT,
+        t('Januar') => t('Januar'),
+        t('Februar') => t('Februar'),
+        t('März') => t('März'),
+        t('April') => t('April'),
+        t('Mai') => t('Mai'),
+        t('Juni') => t('Juni'),
+        t('Juli') => t('Juli'),
+        t('August') => t('August'),
+        t('September') => t('September'),
+        t('Oktober') => t('Oktober'),
+        t('November') => t('November'),
+        t('Dezember') => t('Dezember'),
+    );
+
+    $years = array(SELECT_DEFAULT => SELECT_DEFAULT);
+
+    for ($i = date("Y"); $i >= 1950; $i--) {
+        $years[strval($i)] = strval($i);
+    }
+
     $form['birthday'] = array(
-        '#type' => 'date',
-        '#title' => t('Geburtsdatum'),
-        '#default_value' => (isset($result['birthday_day'])) ? array('year' => $result['birthday_year'], 'month' => $result['birthday_month'], 'day' => $result['birthday_day']) : array('year' => 1990, 'month' => 1, 'day' => 1),
+        '#markup' => '<b>' . t('Geburtstag') . ':</b><br>',
+    );
+
+    $form['birthday_day'] = array(
+        '#type' => 'select', //you can find a list of available types in the form api
+        '#title' => t('Tag'),
+        '#options' => $days,
+        '#default_value' => (isset($result['birthday_day']) && $result['birthday_day'] != 0) ? $result['birthday_day'] : SELECT_DEFAULT,
+        '#prefix' => '<div class="left-floated-element">',
+        '#suffix' => '</div>'
+    );
+
+    $form['birthday_month'] = array(
+        '#type' => 'select', //you can find a list of available types in the form api
+        '#title' => t('Monat'),
+        '#options' => $months,
+        '#default_value' => (isset($result['birthday_month']) && !empty($result['birthday_month'])) ? $result['birthday_month'] : SELECT_DEFAULT,
+        '#prefix' => '<div class="left-floated-element">',
+        '#suffix' => '</div>'
+    );
+
+    $form['birthday_year'] = array(
+        '#type' => 'select', //you can find a list of available types in the form api
+        '#title' => t('Jahr'),
+        '#options' => $years,
+        '#default_value' => (isset($result['birthday_year']) && $result['birthday_year'] != 0) ? $result['birthday_year'] : SELECT_DEFAULT,
+        '#prefix' => '<div class="left-floated-element">',
+        '#suffix' => '</div><div class="clear-float"></div>'
     );
 
     $active = array(t('männlich') => t('männlich'), t('weiblich') => t('weiblich'));
@@ -658,7 +714,7 @@ function create_jf_project(&$form, $row, $defaultValue) {
     $form['jf_projects'][$row]['jf_projects_select'] = array(
         '#type' => 'select', //you can find a list of available types in the form api
         '#options' => array(
-            t('- auswählen -') => t('- auswählen -'),
+            SELECT_DEFAULT => SELECT_DEFAULT,
             t('Projekt 1') => t('Projekt 1'),
             t('Projekt 2') => t('Projekt 2'),
             t('Projekt 3') => t('Projekt 3'),
@@ -681,7 +737,7 @@ function create_visited_school(&$form, $row, $defaultValue) {
     $form['visited_schools'][$row]['visited_schools_select'] = array(
         '#type' => 'select', //you can find a list of available types in the form api
         '#options' => array(
-            t('- auswählen -') => t('- auswählen -'),
+            SELECT_DEFAULT => SELECT_DEFAULT,
             t('Schule A') => t('Schule A'),
             t('Schule B') => t('Schule B'),
             t('Schule C') => t('Schule C'),
@@ -690,28 +746,37 @@ function create_visited_school(&$form, $row, $defaultValue) {
     );
 }
 
-function create_other_profile(&$form, $row, $defaultValues = array()) {
+function create_other_profile(&$form, $row, $defaultValues) {
 
+    $form['other_profiles'][$row]['wrapper_start'] = array(
+        '#markup' => '<fieldset><div class="fieldset-wrapper">'
+    );
     $form['other_profiles'][$row]['choose_portal'] = array(
         '#type' => 'select', //you can find a list of available types in the form api
         '#title' => t('Portal'),
         '#options' => array(
-            t('- auswählen -') => t('- auswählen -'),
+            SELECT_DEFAULT => SELECT_DEFAULT,
             t('Facebook') => t('Facebook'),
             t('Twitter') => t('Twitter'),
             t('Snapchat') => t('Snapchat'),
             t('Instagram') => t('Instagram'),
         ),
-        '#default_value' => $defaultValues['choose_portal'],
+        '#default_value' => (isset($defaultValues['choose_portal']) && !empty($defaultValues['choose_portal'])) ? $defaultValues['choose_portal'] : '',
+        '#prefix' => '<div class="left-floated-element">',
+        '#suffix' => '</div>',
     );
 
     $form['other_profiles'][$row]['portal_link'] = array(
         '#type' => 'textfield', //you can find a list of available types in the form api
         '#title' => t('Link zum Profil'),
-        '#default_value' => $defaultValues['portal_link']
-
+        '#default_value' => $defaultValues['portal_link'],
+        '#prefix' => '<div class="left-floated-element">',
+        '#suffix' => '</div><div class="clear-float"></div>',
     );
 
+    $form['other_profiles'][$row]['wrapper_end'] = array(
+        '#markup' => '</div></fieldset>'
+    );
 }
 
 function create_hobbie(&$form, $row, $defaultValue) {
@@ -726,9 +791,8 @@ function create_interest(&$form, $row, $defaultValue) {
 
     $form['interests'][$row]['interests_select'] = array(
         '#type' => 'select', //you can find a list of available types in the form api
-        '#title' => t('Interessen'),
         '#options' => array(
-            t('- auswählen -') => t('- auswählen -'),
+            SELECT_DEFAULT => SELECT_DEFAULT,
             t('Betriebswirtschaft') => t('Betriebswirtschaft'),
             t('Humanwissenschaften') => t('Humanwissenschaften'),
             t('Informatik') => t('Informatik'),
@@ -808,7 +872,7 @@ function extended_user_profile_form_validate($form, &$form_state) {
     $index = 0;
     foreach ($form_state['values']['other_profiles'] as $value) {
         if (isset($value['portal_link'])) {
-            if (!preg_match('/http:\/\//', $value['portal_link']) && !empty($value['portal_link'])) {
+            if (!preg_match('/(http|https):\/\//', $value['portal_link']) && !empty($value['portal_link'])) {
                 form_set_error('other_profiles][' . $index . '][portal_link', t('Kein gültiger Link beim Portal angegeben.'));
             }
         }
@@ -852,20 +916,17 @@ function delete_image_button_submit($form, &$form_state) {
 function save_button_submit($form, &$form_state) {
 
     $jfProjects = array();
-    $counter = 0;
 
     foreach ($form_state['values']['jf_projects'] as $value) {
         if (isset($value['jf_projects_select'])) {
-            if ($value['jf_projects_select'] != t('- auswählen -')) {
+            if ($value['jf_projects_select'] != SELECT_DEFAULT) {
                 array_push($jfProjects, $value['jf_projects_select']);
 
             }
         }
-        $counter++;
     }
 
     $otherProjects = array();
-    $counter = 0;
 
     foreach ($form_state['values']['other_projects'] as $value) {
         if (isset($value['other_projects_input'])) {
@@ -874,37 +935,34 @@ function save_button_submit($form, &$form_state) {
 
             }
         }
-        $counter++;
     }
 
     $visitedSchools = array();
-    $counter = 0;
 
     foreach ($form_state['values']['visited_schools'] as $value) {
         if (isset($value['visited_schools_select'])) {
-            if ($value['visited_schools_select'] != t('- auswählen -')) {
+            if ($value['visited_schools_select'] != SELECT_DEFAULT) {
                 array_push($visitedSchools, $value['visited_schools_select']);
 
             }
         }
-        $counter++;
     }
 
     $otherProfiles = array();
-    $counter = 0;
 
     foreach ($form_state['values']['other_profiles'] as $value) {
         if (isset($value['choose_portal'])) {
-            if ($value['choose_portal'] != t('- auswählen -') && !empty($value['portal_link'])) {
-                $otherProfiles[$value['choose_portal']] = $value['portal_link'];
+            if ($value['choose_portal'] != SELECT_DEFAULT && !empty($value['portal_link'])) {
+                array_push($otherProfiles, array(
+                    'choose_portal' => $value['choose_portal'],
+                    'portal_link' => $value['portal_link'],
+                ));
             }
         }
-        $counter++;
     }
 
 
     $hobbies = array();
-    $counter = 0;
 
     foreach ($form_state['values']['hobbies'] as $value) {
         if (isset($value['hobbies_input'])) {
@@ -913,24 +971,20 @@ function save_button_submit($form, &$form_state) {
 
             }
         }
-        $counter++;
     }
 
     $interests = array();
-    $counter = 0;
 
     foreach ($form_state['values']['interests'] as $value) {
         if (isset($value['interests_select'])) {
-            if ($value['interests_select'] != t('- auswählen -')) {
+            if ($value['interests_select'] != SELECT_DEFAULT) {
                 array_push($interests, $value['interests_select']);
 
             }
         }
-        $counter++;
     }
 
     $awards = array();
-    $counter = 0;
 
     foreach ($form_state['values']['awards'] as $value) {
         if (isset($value['awards_input'])) {
@@ -939,11 +993,9 @@ function save_button_submit($form, &$form_state) {
 
             }
         }
-        $counter++;
     }
 
     $organisations = array();
-    $counter = 0;
 
     foreach ($form_state['values']['organisations'] as $value) {
         if (isset($value['organisations_input'])) {
@@ -952,7 +1004,6 @@ function save_button_submit($form, &$form_state) {
 
             }
         }
-        $counter++;
     }
 
     $imageID = 0;
@@ -995,9 +1046,9 @@ function save_button_submit($form, &$form_state) {
                 'check_email' => !empty($form_state['values']['check_email']) ? $form_state['values']['check_email'] : 0,
                 'check_post' => !empty($form_state['values']['check_post']) ? $form_state['values']['check_post'] : 0,
                 'check_telephone' => !empty($form_state['values']['check_telephone']) ? $form_state['values']['check_telephone'] : 0,
-                'birthday_day' => !empty($form_state['values']['birthday']['day']) ? $form_state['values']['birthday']['day'] : 0,
-                'birthday_month' => !empty($form_state['values']['birthday']['month']) ? $form_state['values']['birthday']['month'] : 0,
-                'birthday_year' => !empty($form_state['values']['birthday']['year']) ? $form_state['values']['birthday']['year'] : 0,
+                'birthday_day' => ($form_state['values']['birthday_day'] != SELECT_DEFAULT) ? $form_state['values']['birthday_day'] : 0,
+                'birthday_month' => ($form_state['values']['birthday_month'] != SELECT_DEFAULT) ? $form_state['values']['birthday_month'] : '',
+                'birthday_year' => ($form_state['values']['birthday_year'] != SELECT_DEFAULT) ? $form_state['values']['birthday_year'] : 0,
                 'gender' => $form_state['values']['gender'],
                 'hobbies' => serialize($hobbies),
                 'interests' => serialize($interests),
@@ -1023,9 +1074,9 @@ function save_button_submit($form, &$form_state) {
                 'check_email' => !empty($form_state['values']['check_email']) ? $form_state['values']['check_email'] : 0,
                 'check_post' => !empty($form_state['values']['check_post']) ? $form_state['values']['check_post'] : 0,
                 'check_telephone' => !empty($form_state['values']['check_telephone']) ? $form_state['values']['check_telephone'] : 0,
-                'birthday_day' => !empty($form_state['values']['birthday']['day']) ? $form_state['values']['birthday']['day'] : 0,
-                'birthday_month' => !empty($form_state['values']['birthday']['month']) ? $form_state['values']['birthday']['month'] : 0,
-                'birthday_year' => !empty($form_state['values']['birthday']['year']) ? $form_state['values']['birthday']['year'] : 0,
+                'birthday_day' => ($form_state['values']['birthday_day'] != SELECT_DEFAULT) ? $form_state['values']['birthday_day'] : 0,
+                'birthday_month' => ($form_state['values']['birthday_month'] != SELECT_DEFAULT) ? $form_state['values']['birthday_month'] : '',
+                'birthday_year' => ($form_state['values']['birthday_year'] != SELECT_DEFAULT) ? $form_state['values']['birthday_year'] : 0,
                 'gender' => $form_state['values']['gender'],
                 'hobbies' => serialize($hobbies),
                 'interests' => serialize($interests),

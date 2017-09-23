@@ -11,6 +11,8 @@
     );
 }*/
 
+define('SELECT_DEFAULT', t('- auswählen -'));
+
 function extended_user_profile_menu() {
 
     $schema = extended_user_profile_dbschema();
@@ -29,8 +31,8 @@ function extended_user_profile_menu() {
         'page callback' => 'display_userprofile', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
         'page arguments' => array(1), //put the name of the form here
         'access callback' => 'user_is_logged_in',
-        'menu_name' => 'main-menu',
         'file' => 'display_userprofile.pages.inc',
+        'menu_name' => 'main-menu',
     );
 
     $items['user/%user_uid/userprofile/edit'] = array( //this creates a URL that will call this form at "examples/form-example"
@@ -46,9 +48,10 @@ function extended_user_profile_menu() {
     $items['user/%user_uid/usercv'] = array( //this creates a URL that will call this form at "examples/form-example"
         'title' => t('Lebenslauf'), //page title
         'description' => 'A form to mess around with.',
-        'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
-        'page arguments' => array('extended_user_profile_cv_form'), //put the name of the form here
+        'page callback' => 'display_usercv', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+        'page arguments' => array(1), //put the name of the form here
         'access callback' => 'user_is_logged_in',
+        'file' => 'display_usercv.pages.inc',
         'menu_name' => 'main-menu',
     );
 
@@ -72,7 +75,6 @@ function user_uid_to_arg($arg) {
     return empty($arg) || $arg == '%' ? $GLOBALS['user']->uid : $arg;
 }
 
-
 function extended_user_profile_dbschema() {
     $schema = array();
     $schema['extended_user_profile'] = array(
@@ -85,124 +87,96 @@ function extended_user_profile_dbschema() {
             ),
             'image_id' => array(
                 'type' => 'int',
-                'not null' => FALSE,
                 'default' => 0,
             ),
             'first_name' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
             'last_name' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
             'jufo_projects' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
             'other_projects' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
             'visited_schools' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
             'city' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
             'zip_code' => array(
                 'type' => 'int',
-                'not null' => FALSE,
                 'default' => 0,
             ),
             'telephone' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
             'other_profiles' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
             'check_email' => array(
                 'type' => 'int',
-                'not null' => FALSE,
                 'length' => 1,
                 'default' => 0,
             ),
             'check_post' => array(
                 'type' => 'int',
-                'not null' => FALSE,
                 'length' => 1,
                 'default' => 0,
             ),
             'check_telephone' => array(
                 'type' => 'int',
-                'not null' => FALSE,
                 'length' => 1,
                 'default' => 0,
             ),
             'birthday_day' => array(
                 'type' => 'int',
-                'not null' => FALSE,
                 'default' => 0,
             ),
             'birthday_month' => array(
-                'type' => 'int',
-                'not null' => FALSE,
-                'default' => 0,
+                'type' => 'varchar',
+                'default' => '',
+                'length' => 255,
             ),
             'birthday_year' => array(
                 'type' => 'int',
-                'not null' => FALSE,
                 'default' => 0,
             ),
             'gender' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
             'hobbies' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
             'interests' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
             'received_awards' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
             'organisations' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
         ),
     );
@@ -217,95 +191,76 @@ function extended_user_profile_dbschema() {
             ),
             'image_id' => array(
                 'type' => 'int',
-                'not null' => FALSE,
                 'default' => 0,
             ),
             'salutation' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
             'title' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
             'first_name' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
             'last_name' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
             'birthday_day' => array(
                 'type' => 'int',
-                'not null' => FALSE,
                 'default' => 0,
             ),
             'birthday_month' => array(
-                'type' => 'int',
-                'not null' => FALSE,
-                'default' => 0,
+                'type' => 'varchar',
+                'default' => '',
+                'length' => 255,
             ),
             'birthday_year' => array(
                 'type' => 'int',
-                'not null' => FALSE,
                 'default' => 0,
             ),
             'email' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
             'city' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
             'zip_code' => array(
                 'type' => 'int',
-                'not null' => FALSE,
                 'default' => 0,
             ),
             'telephone' => array(
                 'type' => 'varchar',
                 'length' => 255,
-                'not null' => FALSE,
                 'default' => ''
             ),
 
             'practical_experience' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
             'education' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
             'language_skills' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
             'special_knowledge' => array(
-                'type' => 'varchar',
-                'length' => 255,
-                'not null' => FALSE,
-                'default' => ''
+                'type' => 'text',
+                'size' => 'medium',
             ),
 
         )

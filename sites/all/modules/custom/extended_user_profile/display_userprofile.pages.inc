@@ -141,7 +141,7 @@ function display_userprofile($user_id) {
         $otherProfiles = unserialize($result['other_profiles']);
 
         foreach ($otherProfiles as $key => $value) {
-            $otherProfilesHTML .= '<span class="profile-value"><a href="' . $value . '" target="_blank">' . $key . '</a></span><br>';
+            $otherProfilesHTML .= '<span class="profile-value"><a href="' . $value['portal_link'] . '" target="_blank">' . $value['choose_portal'] . '</a></span><br>';
         }
 
         if (count($otherProfiles) == 0) {
@@ -326,7 +326,7 @@ function display_userprofile($user_id) {
 
     if ($user_id == $user->uid || user_has_role(3, user_load($user->uid))) {
         $content['edit_button'] = array(
-            '#markup' => '<br><a class="btn edit-userprofile" href="' . base_path() . 'user/' . $user_id . '/userprofile/edit">' . t('Editieren') . '</a>',
+            '#markup' => '<br><a class="btn" href="' . base_path() . 'user/' . $user_id . '/usercv/edit">' . t('Editieren') . '</a>',
         );
     }
 
