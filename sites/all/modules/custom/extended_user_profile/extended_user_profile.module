@@ -12,6 +12,7 @@
 }*/
 
 define('SELECT_DEFAULT', t('- auswählen -'));
+define('NO_INDICATION_DEFAULT', t('- keine Angabe -'));
 
 function extended_user_profile_menu() {
 

@@ -5,7 +5,29 @@ function display_userprofile($user_id) {
     global $user;
     $content = array();
 
-    $fields = array('image_id', 'first_name', 'last_name', 'jufo_projects', 'other_projects', 'visited_schools', 'city', 'zip_code', 'telephone', 'other_profiles', 'check_email', 'check_post', 'check_telephone', 'birthday_day', 'birthday_month', 'birthday_year', 'gender', 'hobbies', 'interests', 'received_awards', 'organisations');
+    $fields = array(
+        'image_id',
+        'first_name',
+        'last_name',
+        'jufo_projects',
+        'other_projects',
+        'visited_schools',
+        'city',
+        'zip_code',
+        'telephone',
+        'other_profiles',
+        'check_email',
+        'check_post',
+        'check_telephone',
+        'birthday_day',
+        'birthday_month',
+        'birthday_year',
+        'gender',
+        'hobbies',
+        'interests',
+        'received_awards',
+        'organisations'
+    );
 
     $result = db_select('extended_user_profile', 'ex')
         ->fields('ex', $fields)
@@ -57,7 +79,7 @@ function display_userprofile($user_id) {
         '#markup' => '<div class="general-left-container">' . $imageText . '</div>'
     );
 
-    $jfProjectsHTML = t('- keine Angabe -');
+    $jfProjectsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['jufo_projects'])) {
         $jfProjectsHTML = '';
@@ -68,11 +90,11 @@ function display_userprofile($user_id) {
         }
 
         if (count($jfProjects) == 0) {
-            $jfProjectsHTML = t('- keine Angabe -');
+            $jfProjectsHTML = NO_INDICATION_DEFAULT;
         }
 
     }
-    $otherProjectsHTML = t('- keine Angabe -');
+    $otherProjectsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['other_projects'])) {
         $otherProjectsHTML = '';
@@ -83,11 +105,11 @@ function display_userprofile($user_id) {
         }
 
         if (count($otherProjects) == 0) {
-            $otherProjectsHTML = t('- keine Angabe -');
+            $otherProjectsHTML = NO_INDICATION_DEFAULT;
         }
 
     }
-    $visitedSchoolsHTML = t('- keine Angabe -');
+    $visitedSchoolsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['visited_schools'])) {
         $visitedSchoolsHTML = '';
@@ -98,11 +120,11 @@ function display_userprofile($user_id) {
         }
 
         if (count($visitedSchools) == 0) {
-            $visitedSchoolsHTML = t('- keine Angabe -');
+            $visitedSchoolsHTML = NO_INDICATION_DEFAULT;
         }
     }
 
-    $username = (empty($result['first_name']) && empty($result['last_name'])) ? t('- keine Angabe -') : $result['first_name'] . ' ' . $result['last_name'];
+    $username = (empty($result['first_name']) && empty($result['last_name'])) ? NO_INDICATION_DEFAULT : $result['first_name'] . ' ' . $result['last_name'];
 
     $HTML =
         '<div id="sep1" class="v-separator"></div>' .
@@ -130,11 +152,11 @@ function display_userprofile($user_id) {
     );
 
 
-    $city = (empty($result['city'])) ? t('- keine Angabe -') : $result['city'];
-    $zip_code = (isset($result['zip_code']) && $result['zip_code'] != 0) ? $result['zip_code'] : t('- keine Angabe -');
-    $telephone = (empty($result['telephone'])) ? t('- keine Angabe -') : $result['telephone'];
+    $city = (empty($result['city'])) ? NO_INDICATION_DEFAULT : $result['city'];
+    $zip_code = (isset($result['zip_code']) && $result['zip_code'] != 0) ? $result['zip_code'] : NO_INDICATION_DEFAULT;
+    $telephone = (empty($result['telephone'])) ? NO_INDICATION_DEFAULT : $result['telephone'];
 
-    $otherProfilesHTML = t('- keine Angabe -');
+    $otherProfilesHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['other_profiles'])) {
         $otherProfilesHTML = '';
@@ -145,7 +167,7 @@ function display_userprofile($user_id) {
         }
 
         if (count($otherProfiles) == 0) {
-            $otherProfilesHTML = t('- keine Angabe -');
+            $otherProfilesHTML = NO_INDICATION_DEFAULT;
         }
     }
 
@@ -211,10 +233,22 @@ function display_userprofile($user_id) {
         '#markup' => '<div id="personal" class="tabcontent">',
     );
 
-    $birthday = (empty($result['birthday_day']) && empty($result['birthday_month'] && empty($result['birthday_year'])) == 0) ? t('- keine Angabe -') : $result['birthday_day'] . ' ' . $result['birthday_month'] . ' ' . $result['birthday_year'];
-    $gender = ($result['gender'] == null) ? t('- keine Angabe -') : $result['gender'];
+    $birthdayDay = ($result['birthday_day'] != 0 && !empty($result['birthday_day'])) ? $result['birthday_day'] : '';
+    $birthdayMonth = (!empty($result['birthday_month'])) ? $birthdayMonth = $result['birthday_month'] : '';
+    $birthdayYear = ($result['birthday_year'] != 0 && !empty($result['birthday_year'])) ? $birthdayYear = $result['birthday_year'] : '';
 
-    $hobbiesHTML = t('- keine Angabe -');
+    $birthday = '';
+    if (empty($birthdayDay) && empty($birthdayMonth) &&  empty($birthdayYear)) {
+        $birthday = NO_INDICATION_DEFAULT;
+    } else {
+        $birthday .= (!empty($birthdayDay)) ? $birthdayDay . ' ' : '';
+        $birthday .= (!empty($birthdayMonth)) ? $birthdayMonth . ' ' : '';
+        $birthday .= (!empty($birthdayYear)) ? $birthdayYear . ' ' : '';
+    }
+
+    $gender = ($result['gender'] == null) ? NO_INDICATION_DEFAULT : $result['gender'];
+
+    $hobbiesHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['hobbies'])) {
         $hobbiesHTML = '';
@@ -225,11 +259,11 @@ function display_userprofile($user_id) {
         }
 
         if (count($hobbies) == 0) {
-            $hobbiesHTML = t('- keine Angabe -');
+            $hobbiesHTML = NO_INDICATION_DEFAULT;
         }
     }
 
-    $interestsHTML = t('- keine Angabe -');
+    $interestsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['interests'])) {
         $interestsHTML = '';
@@ -240,7 +274,7 @@ function display_userprofile($user_id) {
         }
 
         if (count($interests) == 0) {
-            $interestsHTML = t('- keine Angabe -');
+            $interestsHTML = NO_INDICATION_DEFAULT;
         }
     }
 
@@ -275,7 +309,7 @@ function display_userprofile($user_id) {
         '#markup' => '<div id="others" class="tabcontent">',
     );
 
-    $awardsHTML = t('- keine Angabe -');
+    $awardsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['interests'])) {
         $awardsHTML = '';
@@ -286,11 +320,11 @@ function display_userprofile($user_id) {
         }
 
         if (count($awards) == 0) {
-            $awardsHTML = t('- keine Angabe -');
+            $awardsHTML = NO_INDICATION_DEFAULT;
         }
     }
 
-    $organisationsHTML = t('- keine Angabe -');
+    $organisationsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['organisations'])) {
         $organisationsHTML = '';
@@ -301,7 +335,7 @@ function display_userprofile($user_id) {
         }
 
         if (count($organisations) == 0) {
-            $organisationsHTML = t('- keine Angabe -');
+            $organisationsHTML = NO_INDICATION_DEFAULT;
         }
     }
 
@@ -326,7 +360,7 @@ function display_userprofile($user_id) {
 
     if ($user_id == $user->uid || user_has_role(3, user_load($user->uid))) {
         $content['edit_button'] = array(
-            '#markup' => '<br><a class="btn" href="' . base_path() . 'user/' . $user_id . '/usercv/edit">' . t('Editieren') . '</a>',
+            '#markup' => '<br><a class="btn" href="' . base_path() . 'user/' . $user_id . '/userprofile/edit">' . t('Editieren') . '</a>',
         );
     }
 
