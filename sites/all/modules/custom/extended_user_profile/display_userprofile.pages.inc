@@ -2,9 +2,22 @@
 
 function display_userprofile($user_id) {
 
+    //Überprüfen, ob Benutzer mit der ID existiert
+    $userLoad = user_load($user_id);
+    if (!$userLoad) {
+        drupal_not_found();
+        drupal_exit();
+    }
+
+    //CSS laden
+    drupal_add_css(drupal_get_path('module', 'extended_user_profile') . '/css/eup_custom.css', array('group' => CSS_DEFAULT));
+    drupal_add_css(drupal_get_path('module', 'extended_user_profile') . '/css/eup_media.css', array('group' => CSS_DEFAULT));
+
+    //Aktuell angemeldeten Benutzer aus globalem $user laden
     global $user;
     $content = array();
 
+    //Felder für die Datenbankabfrage
     $fields = array(
         'image_id',
         'first_name',
@@ -29,12 +42,14 @@ function display_userprofile($user_id) {
         'organisations'
     );
 
+    //Daten aus der DB laden
     $result = db_select('extended_user_profile', 'ex')
         ->fields('ex', $fields)
         ->condition('user_id', $user_id, '=')
         ->execute()
         ->fetchAssoc();
 
+    //HTML für die Tabs der vier Bereiche
     $tabsHTML =
         '<div class="tab">' .
         '<a class="tablinks active" target="general">' . t('Allgemein') . '</a>' .
@@ -43,21 +58,23 @@ function display_userprofile($user_id) {
         '<a class="tablinks" target="others">' . t('Sonstiges') . '</a>' .
         '</div>';
 
+    //Array $content wird nach und nach mit HTML Inhalt befüllt und zum Schluss zurückgegeben, sodass Drupal den Inhalt des Arrays dann anzeigt
     $content['tabarea'] = array(
         '#markup' => $tabsHTML,
     );
 
+    //Jeder Inhalt eines Tabs muss in tabcontent stehen
     $content['general_start'] = array(
         '#markup' => '<div id="general" class="tabcontent">',
     );
 
 
     //Nutzerprofil Allgemein
-
     $content['general_headline'] = array(
         '#markup' => '<h3>' . t('Allgemein & Kontaktdaten') . '</h3>',
     );
 
+    //Falls existiert, Bild laden und HTML erzeugen
     $imageText = '';
     if ($result['image_id'] != 0) {
         $image = file_load($result['image_id']);
@@ -79,6 +96,7 @@ function display_userprofile($user_id) {
         '#markup' => '<div class="general-left-container">' . $imageText . '</div>'
     );
 
+    //Jugend Forscht Projekte aus der DB laden, String in Array umwandeln, Array iterieren und den HTML Code zusammenbauen
     $jfProjectsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['jufo_projects'])) {
@@ -94,6 +112,8 @@ function display_userprofile($user_id) {
         }
 
     }
+
+    //Andere Projekte aus der DB laden, String in Array umwandeln, Array iterieren und den HTML Code zusammenbauen
     $otherProjectsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['other_projects'])) {
@@ -109,6 +129,8 @@ function display_userprofile($user_id) {
         }
 
     }
+
+    //Besuchte Schulen aus der DB laden, String in Array umwandeln, Array iterieren und den HTML Code zusammenbauen
     $visitedSchoolsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['visited_schools'])) {
@@ -124,8 +146,10 @@ function display_userprofile($user_id) {
         }
     }
 
+    //Benutzername zusammenbauen
     $username = (empty($result['first_name']) && empty($result['last_name'])) ? NO_INDICATION_DEFAULT : $result['first_name'] . ' ' . $result['last_name'];
 
+    //HTML Code für die mittlere Spalte im Tab Allgemein fertig stellen
     $HTML =
         '<div id="sep1" class="v-separator"></div>' .
         '<div class="general-middle-container">' .
@@ -151,11 +175,12 @@ function display_userprofile($user_id) {
         '#markup' => $HTML,
     );
 
-
+    //Stadt, PLZ und Telefon auf Inhalt prüfen
     $city = (empty($result['city'])) ? NO_INDICATION_DEFAULT : $result['city'];
     $zip_code = (isset($result['zip_code']) && $result['zip_code'] != 0) ? $result['zip_code'] : NO_INDICATION_DEFAULT;
     $telephone = (empty($result['telephone'])) ? NO_INDICATION_DEFAULT : $result['telephone'];
 
+    //Andere Profile aus der DB laden, String in Array umwandeln, Array iterieren und den HTML Code zusammenbauen
     $otherProfilesHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['other_profiles'])) {
@@ -171,6 +196,7 @@ function display_userprofile($user_id) {
         }
     }
 
+    //HTML Code für die rechte Spalte im Tab Allgemein fertig stellen
     $HTML =
         '<div id="sep2" class="v-separator"></div>' .
         '<div class="general-right-container">' .
@@ -206,11 +232,13 @@ function display_userprofile($user_id) {
         '#markup' => '<div id="contact-preference" class="tabcontent">',
     );
 
+    //Inhalt für die Checkboxen überprüfen und anschließend den HTML Code zusammenbauen
     $checkEmail = ($result['check_email'] == 0) ? '' : '<span class="profile-value">' . t('E-Mail'). '</span><br>';
     $checkPost = ($result['check_post'] == 0) ? '' : '<span class="profile-value">' . t('Post'). '</span><br>';
     $checkTelephone = ($result['check_telephone'] == 0) ? '' : '<span class="profile-value">' . t('Telefon/Mobil'). '</span><br>';
     $checkAll = ($result['check_email'] == 0 && $result['check_post'] == 0 && $result['check_telephone'] == 0) ? t('- keine Angaben -') : '';
 
+    //HTML für den zweiten Tab Kontaktpräferenz zusammenbauen
     $HTML =
         '<span class="profile-bold-text">' . t('Benutzer darf über folgende Kanäle kontaktiert werden') . ':</span>' .
         '<p class="profile-container-contact">' .
@@ -233,21 +261,27 @@ function display_userprofile($user_id) {
         '#markup' => '<div id="personal" class="tabcontent">',
     );
 
+    //Daten vom Geburtstag prüfen
     $birthdayDay = ($result['birthday_day'] != 0 && !empty($result['birthday_day'])) ? $result['birthday_day'] : '';
     $birthdayMonth = (!empty($result['birthday_month'])) ? $birthdayMonth = $result['birthday_month'] : '';
     $birthdayYear = ($result['birthday_year'] != 0 && !empty($result['birthday_year'])) ? $birthdayYear = $result['birthday_year'] : '';
 
     $birthday = '';
+
+    //Wenn alle drei leer sind, dann wird keine Angabe angezeigt
     if (empty($birthdayDay) && empty($birthdayMonth) &&  empty($birthdayYear)) {
         $birthday = NO_INDICATION_DEFAULT;
     } else {
+        //Andernfalls je nachdem ob der Inhalt leer ist oder nicht, wird das Geburtsdatum zusammengefügt
         $birthday .= (!empty($birthdayDay)) ? $birthdayDay . ' ' : '';
         $birthday .= (!empty($birthdayMonth)) ? $birthdayMonth . ' ' : '';
         $birthday .= (!empty($birthdayYear)) ? $birthdayYear . ' ' : '';
     }
 
+    //Inhalt von Geschlecht überprüfen
     $gender = ($result['gender'] == null) ? NO_INDICATION_DEFAULT : $result['gender'];
 
+    //Hobbies aus der DB laden, String in Array umwandeln, Array iterieren und den HTML Code zusammenbauen
     $hobbiesHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['hobbies'])) {
@@ -263,6 +297,7 @@ function display_userprofile($user_id) {
         }
     }
 
+    //Interessen aus der DB laden, String in Array umwandeln, Array iterieren und den HTML Code zusammenbauen
     $interestsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['interests'])) {
@@ -278,6 +313,7 @@ function display_userprofile($user_id) {
         }
     }
 
+    //HTML für den dritten Tab Persönlich zusammenbauen
     $HTML =
         '<p class="profile-container-personal">' .
         '<span class="profile-bold-text">' . t('Geburtsdatum') . ':</span><br>' .
@@ -309,6 +345,7 @@ function display_userprofile($user_id) {
         '#markup' => '<div id="others" class="tabcontent">',
     );
 
+    //Auszeichnungen aus der DB laden, String in Array umwandeln, Array iterieren und den HTML Code zusammenbauen
     $awardsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['interests'])) {
@@ -324,6 +361,7 @@ function display_userprofile($user_id) {
         }
     }
 
+    //Organisationen aus der DB laden, String in Array umwandeln, Array iterieren und den HTML Code zusammenbauen
     $organisationsHTML = NO_INDICATION_DEFAULT;
 
     if (!empty($result['organisations'])) {
@@ -339,6 +377,7 @@ function display_userprofile($user_id) {
         }
     }
 
+    //HTML Code für den vierten Tab Sonstiges zusammenbauen
     $HTML =
         '<p class="profile-container-personal">' .
         '<span class="profile-bold-text">' . t('Erhaltene Auszeichnungen') . ':</span><br>' .
@@ -357,12 +396,13 @@ function display_userprofile($user_id) {
         '#markup' => '</div>',
     );
 
-
+    //Wenn der Benutzer sein eigenes Profil aufruft oder ein Administrator das Profil aufruft, wird ein Editierbutton angezeigt
     if ($user_id == $user->uid || user_has_role(3, user_load($user->uid))) {
         $content['edit_button'] = array(
             '#markup' => '<br><a class="btn" href="' . base_path() . 'user/' . $user_id . '/userprofile/edit">' . t('Editieren') . '</a>',
         );
     }
 
+    //$content zurückgeben, sodass Drupal diesen anzeigen kann
     return $content;
 }

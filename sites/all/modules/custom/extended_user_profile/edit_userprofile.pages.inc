@@ -2,19 +2,28 @@
 
 function extended_user_profile_form($form, &$form_state, $user_id) {
 
+    //Überprüfen, ob ein Benutzer mit der ID existiert
     $userLoad = user_load($user_id);
+
     if(!$userLoad){
         drupal_not_found();
         drupal_exit();
     }
 
+    //Aktuell angemeldeten Benutzer aus global $user laden
     global $user;
 
+    //Wenn der Benutzer nicht seine eigene Profilseite aufruft oder es sich nicht um einen Administrator handelt, wird der Zugriff verweigert
     if ($user_id != $user->uid && !user_has_role(3, user_load($user->uid))) {
         drupal_access_denied();
         drupal_exit();
     }
 
+    //CSS laden
+    drupal_add_css(drupal_get_path('module', 'extended_user_profile') . '/css/eup_custom.css', array('group' => CSS_DEFAULT));
+    drupal_add_css(drupal_get_path('module', 'extended_user_profile') . '/css/eup_media.css', array('group' => CSS_DEFAULT));
+
+    //Felder für Datenbankabfrage
     $fields = array(
         'image_id',
         'first_name',
@@ -39,18 +48,24 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         'organisations'
     );
 
+    //Wenn die ID der aufgerufenen Seite ungleich der ID des aktuell angemeldeten Benutzer ist und der Benutzer den Administratoren angehört, dann bleibt user_id,
+    //ansonsten wird user_id die ID des aktuell angemeldeten Benutzers.
     $user_id = ($user_id != $user->uid && user_has_role(3, user_load($user->uid))) ? $user_id : $user->uid;
+
+    //Daten aus der DB laden
     $result = db_select('extended_user_profile', 'ex')
         ->fields('ex', $fields)
         ->condition('user_id', $user_id, '=')
         ->execute()
         ->fetchAssoc();
 
+    //User ID in einem hidden Feld speichern, damit beim Submit die ID zur Verfügung steht
     $form['profile_user_id'] = array(
         '#type' => 'hidden',
         '#value' => $user_id,
     );
 
+    //HTML Code für die Tabs wie beim Anzeigemodus erstellen
     $tabsHTML =
         '<div class="tab">' .
         '<a class="tablinks active" target="general">' . t('Allgemein') . '</a>' .
@@ -74,6 +89,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#markup' => '<h3>' . t('Allgemein') . '</h3>',
     );
 
+    //Überprüfen, ob es Bild bereits für den Benutzer existiert, dieses laden und anzeigen, sowie einen Button zum Löschen anzeigen lassen
     if ($result['image_id'] != 0) {
 
         $image = file_load($result['image_id']);
@@ -94,6 +110,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         );
     }
 
+    //Uploadmaske
     $form['profile_image_upload'] = array(
         '#type' => 'file',
         '#title' => t('Profilbild hochladen'),
@@ -101,10 +118,10 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     );
 
 
+    //Vor- und Nachname Eingabefelder
     $form['firstname'] = array(
         '#type' => 'textfield', //you can find a list of available types in the form api
         '#title' => t('Vorname'),
-        '#prefix' => '<br><hr><br>',
         '#default_value' => (isset($result['first_name']) && !empty($result['first_name'])) ? $result['first_name'] : '',
         '#prefix' => '<div class="left-floated-element">',
         '#suffix' => '</div>',
@@ -118,19 +135,23 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#suffix' => '</div><div class="clear-float"></div>',
     );
 
+    //Fieldseit für Jugend Forscht Projekte
     $form['jf_projects'] = array(
         '#type' => 'fieldset',
         '#title' => t('Jugend Forscht Projekt auswählen'),
-        '#prefix' => '<div id="replace-jf-projects">',
+        '#prefix' => '<div id="replace-jf-projects">', //Der Bereich wird beim Nachladen von dynmaischen Feldern ersetzt
         '#suffix' => '</div>',
         '#tree' => TRUE,
     );
 
-    // Build the initial fields if this is not being rebuilt
-    // from ajax request.
+    //Überprüfen ob ein Button geklickt wurde. Passiert beim dynamischen Nachladen von Feldern
     if (!array_key_exists('clicked_button', $form_state)) {
 
+        //Beim Aufruf der Seite überprüfen, ob bereits Daten in der Datenbank stehen
         if (isset($result['jufo_projects'])) {
+            //String in Array umwandeln, überprüfen, ob das Array Inhalt hat und anschließend das Array iterieren und
+            //die Funktion create_jf_project mit den Daten aus der Datenbank aufrufen. Felder werden mit
+            //Daten aus der Datenbank befüllt
             $jfProjects = unserialize($result['jufo_projects']);
 
             if (count($jfProjects) != 0) {
@@ -139,19 +160,22 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
 
                 }
             }else {
+                //Andernfalls leere Felder erzeugen
                 create_jf_project($form, 0, '');
             }
         } else {
+            //Andernfalls leere Felder erzeugen
             create_jf_project($form, 0, '');
         }
     } else {
 
 
-        // Otherwise add the fields for each existing value.
+        // Beim dynamischen Nachladen von Feldern alle bisher existierenden iterieren und die Felder aufbauen
         foreach ($form_state['values']['jf_projects'] as $i => $value) {
             create_jf_project($form, $i, '');
         }
 
+        //Wenn der Button für praktische Erfahrung geklickt wurde, einen zusätzlichen Bereich mit Feldern laden
         if ($form_state['clicked_button']['#name'] == 'jf_projects_add') {
             // Add the additional fields for a new entry.
             $last = count($form_state['values']['jf_projects']);
@@ -159,6 +183,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         }
     }
 
+    //Mehr Button für Jugend Forscht Projekte definieren
     $form['jf_projects']['add_more'] = array(
         '#type' => 'button',
         '#name' => 'jf_projects_add',
@@ -171,12 +196,14 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#weight' => 1000
     );
 
+    //Button für Weiterleitung in die Jugend Forscht Datenbank
     $form['jf_projects']['jf_project_db'] = array(
         '#type' => 'button',
         '#value' => t('JuFo-Projektdatenbank'),
         '#weight' => 1001
     );
 
+    //Button zum Vorschlagen eines Projektes
     $form['jf_projects']['suggest_project'] = array(
         '#type' => 'button',
         '#value' => t('Projekt vorschlagen'),
@@ -184,6 +211,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     );
 
 
+    //Bereich ist analog zu den Jugend Forscht Projekten
     $form['other_projects'] = array(
         '#type' => 'fieldset',
         '#title' => t('Weitere Projekte auswählen'),
@@ -192,8 +220,6 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#tree' => TRUE,
     );
 
-    // Build the initial fields if this is not being rebuilt
-    // from ajax request.
     if (!array_key_exists('clicked_button', $form_state)) {
         if (isset($result['other_projects'])) {
             $otherProjects = unserialize($result['other_projects']);
@@ -210,14 +236,11 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         }
     } else {
 
-
-        // Otherwise add the fields for each existing value.
         foreach ($form_state['values']['other_projects'] as $i => $value) {
             create_other_project($form, $i, '');
         }
 
         if ($form_state['clicked_button']['#name'] == 'other_projects_add') {
-            // Add the additional fields for a new entry.
             $last = count($form_state['values']['other_projects']);
             create_other_project($form, $last, '');
         }
@@ -236,6 +259,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     );
 
 
+    //Bereich ist analog zu den Jugend Forscht Projekten
     $form['visited_schools'] = array(
         '#type' => 'fieldset',
         '#title' => t('Besuchte Schule auswählen'),
@@ -244,8 +268,6 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#tree' => TRUE,
     );
 
-    // Build the initial fields if this is not being rebuilt
-    // from ajax request.
     if (!array_key_exists('clicked_button', $form_state)) {
         if (isset($result['visited_schools'])) {
             $visitedSchools = unserialize($result['visited_schools']);
@@ -262,14 +284,11 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         }
     } else {
 
-
-        // Otherwise add the fields for each existing value.
         foreach ($form_state['values']['visited_schools'] as $i => $value) {
             create_visited_school($form, $i, '');
         }
 
         if ($form_state['clicked_button']['#name'] == 'visited_schools_add') {
-            // Add the additional fields for a new entry.
             $last = count($form_state['values']['visited_schools']);
             create_visited_school($form, $last, '');
         }
@@ -300,7 +319,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     );
 
     $form['city'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
+        '#type' => 'textfield',
         '#title' => t('Wohnort'),
         '#default_value' => (isset($result['city']) && !empty($result['city'])) ? $result['city'] : '',
         '#prefix' => '<div class="left-floated-element">',
@@ -308,7 +327,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     );
 
     $form['zip_code'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
+        '#type' => 'textfield',
         '#title' => t('PLZ'),
         '#default_value' => (isset($result['zip_code']) && $result['zip_code'] != 0) ? $result['zip_code'] : '',
         '#prefix' => '<div class="left-floated-element">',
@@ -316,11 +335,12 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     );
 
     $form['telephone'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
+        '#type' => 'textfield',
         '#title' => t('Telefon/Mobil'),
         '#default_value' => (isset($result['telephone']) && !empty($result['telephone'])) ? $result['telephone'] : '',
     );
 
+    //Bereich ist analog zu den Jugend Forscht Projekten
     $form['other_profiles'] = array(
         '#type' => 'fieldset',
         '#title' => t('Weitere Profile auswählen'),
@@ -329,8 +349,6 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#tree' => TRUE,
     );
 
-    // Build the initial fields if this is not being rebuilt
-    // from ajax request.
     if (!array_key_exists('clicked_button', $form_state)) {
         if (isset($result['other_profiles'])) {
             $otherProfiles = unserialize($result['other_profiles']);
@@ -338,7 +356,6 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
                 $index = 0;
 
                 for ($i = 0; $i < count($otherProfiles); $i++) {
-                //foreach ($otherProfiles as $key => $value) {
                     create_other_profile($form, $i, $otherProfiles[$i]);
                     $index++;
                 }
@@ -351,15 +368,11 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
             create_other_profile($form, 0, null);
         }
     } else {
-
-
-        // Otherwise add the fields for each existing value.
         foreach ($form_state['values']['other_profiles'] as $i => $value) {
             create_other_profile($form, $i, null);
         }
 
         if ($form_state['clicked_button']['#name'] == 'other_profiles_add') {
-            // Add the additional fields for a new entry.
             $last = count($form_state['values']['other_profiles']);
             create_other_profile($form, $last, null);
         }
@@ -418,6 +431,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#markup' => '<div id="personal" class="tabcontent">',
     );
 
+    //Arrays mit Tagen, Monaten und Jahren definieren
     $days = array(SELECT_DEFAULT => SELECT_DEFAULT);
     for ($i = 1; $i <= 31; $i++) {
         $days[strval($i)] = strval($i);
@@ -450,7 +464,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     );
 
     $form['birthday_day'] = array(
-        '#type' => 'select', //you can find a list of available types in the form api
+        '#type' => 'select',
         '#title' => t('Tag'),
         '#options' => $days,
         '#default_value' => (isset($result['birthday_day']) && $result['birthday_day'] != 0) ? $result['birthday_day'] : SELECT_DEFAULT,
@@ -459,7 +473,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     );
 
     $form['birthday_month'] = array(
-        '#type' => 'select', //you can find a list of available types in the form api
+        '#type' => 'select',
         '#title' => t('Monat'),
         '#options' => $months,
         '#default_value' => (isset($result['birthday_month']) && !empty($result['birthday_month'])) ? $result['birthday_month'] : SELECT_DEFAULT,
@@ -468,7 +482,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     );
 
     $form['birthday_year'] = array(
-        '#type' => 'select', //you can find a list of available types in the form api
+        '#type' => 'select',
         '#title' => t('Jahr'),
         '#options' => $years,
         '#default_value' => (isset($result['birthday_year']) && $result['birthday_year'] != 0) ? $result['birthday_year'] : SELECT_DEFAULT,
@@ -485,6 +499,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     );
 
 
+    //Bereich ist analog zu den Jugend Forscht Projekten
     $form['hobbies'] = array(
         '#type' => 'fieldset',
         '#title' => t('Hobbys'),
@@ -493,8 +508,6 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#tree' => TRUE,
     );
 
-    // Build the initial fields if this is not being rebuilt
-    // from ajax request.
     if (!array_key_exists('clicked_button', $form_state)) {
         if (isset($result['hobbies'])) {
             $hobbies = unserialize($result['hobbies']);
@@ -510,13 +523,11 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
             create_hobbie($form, 0, '');
         }
     } else {
-        // Otherwise add the fields for each existing value.
         foreach ($form_state['values']['hobbies'] as $i => $value) {
             create_hobbie($form, $i, '');
         }
 
         if ($form_state['clicked_button']['#name'] == 'hobbies_add') {
-            // Add the additional fields for a new entry.
             $last = count($form_state['values']['hobbies']);
             create_hobbie($form, $last, '');
         }
@@ -534,6 +545,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#weight' => 1000
     );
 
+    //Bereich ist analog zu den Jugend Forscht Projekten
     $form['interests'] = array(
         '#type' => 'fieldset',
         '#title' => t('Interessen'),
@@ -542,8 +554,6 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#tree' => TRUE,
     );
 
-    // Build the initial fields if this is not being rebuilt
-    // from ajax request.
     if (!array_key_exists('clicked_button', $form_state)) {
         if (isset($result['interests'])) {
             $interests = unserialize($result['interests']);
@@ -559,7 +569,6 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
             create_interest($form, 0, '');
         }
     } else {
-        // Otherwise add the fields for each existing value.
         foreach ($form_state['values']['interests'] as $i => $value) {
             create_interest($form, $i, '');
         }
@@ -592,6 +601,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#markup' => '<div id="others" class="tabcontent">',
     );
 
+    //Bereich ist analog zu den Jugend Forscht Projekten
     $form['awards'] = array(
         '#type' => 'fieldset',
         '#title' => t('Erhaltene Auszeichnungen'),
@@ -600,8 +610,6 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#tree' => TRUE,
     );
 
-    // Build the initial fields if this is not being rebuilt
-    // from ajax request.
     if (!array_key_exists('clicked_button', $form_state)) {
         if (isset($result['received_awards'])) {
             $awards = unserialize($result['received_awards']);
@@ -617,13 +625,11 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
             create_award($form, 0, '');
         }
     } else {
-        // Otherwise add the fields for each existing value.
         foreach ($form_state['values']['awards'] as $i => $value) {
             create_award($form, $i, '');
         }
 
         if ($form_state['clicked_button']['#name'] == 'awards_add') {
-            // Add the additional fields for a new entry.
             $last = count($form_state['values']['awards']);
             create_award($form, $last, '');
         }
@@ -641,6 +647,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#weight' => 1000
     );
 
+    //Bereich ist analog zu den Jugend Forscht Projekten
     $form['organisations'] = array(
         '#type' => 'fieldset',
         '#title' => t('Organisationen'),
@@ -649,8 +656,6 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#tree' => TRUE,
     );
 
-    // Build the initial fields if this is not being rebuilt
-    // from ajax request.
     if (!array_key_exists('clicked_button', $form_state)) {
         if (isset($result['organisations'])) {
             $organisations = unserialize($result['organisations']);
@@ -666,13 +671,11 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
             create_organisation($form, 0, '');
         }
     } else {
-        // Otherwise add the fields for each existing value.
         foreach ($form_state['values']['organisations'] as $i => $value) {
             create_organisation($form, $i, '');
         }
 
         if ($form_state['clicked_button']['#name'] == 'organisations_add') {
-            // Add the additional fields for a new entry.
             $last = count($form_state['values']['organisations']);
             create_organisation($form, $last, '');
         }
@@ -694,7 +697,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
         '#markup' => '</div>',
     );
 
-
+    //Button zum Abschicken der Form
     $form['save_button'] = array(
         '#type' => 'submit',
         '#value' => t('Speichern'),
@@ -706,13 +709,12 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
 
 }
 
-
-
+//Funktion zum Aufbauen der Felder für jugend Forscht Projekte
 function create_jf_project(&$form, $row, $defaultValue) {
     //$form['agencies'][$row] = array('#type' => 'fieldset');
 
     $form['jf_projects'][$row]['jf_projects_select'] = array(
-        '#type' => 'select', //you can find a list of available types in the form api
+        '#type' => 'select',
         '#options' => array(
             SELECT_DEFAULT => SELECT_DEFAULT,
             t('Projekt 1') => t('Projekt 1'),
@@ -724,18 +726,20 @@ function create_jf_project(&$form, $row, $defaultValue) {
 
 }
 
+//Funktion zum Aufbauen der Felder für andere Projekte
 function create_other_project(&$form, $row, $defaultValue) {
     $form['other_projects'][$row]['other_projects_input'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
+        '#type' => 'textfield',
         '#default_value' => $defaultValue,
     );
 
 }
 
+//Funktion zum Aufbauen der Felder für besuchte Schulen
 function create_visited_school(&$form, $row, $defaultValue) {
 
     $form['visited_schools'][$row]['visited_schools_select'] = array(
-        '#type' => 'select', //you can find a list of available types in the form api
+        '#type' => 'select',
         '#options' => array(
             SELECT_DEFAULT => SELECT_DEFAULT,
             t('Schule A') => t('Schule A'),
@@ -746,13 +750,16 @@ function create_visited_school(&$form, $row, $defaultValue) {
     );
 }
 
+//Funktion zum Aufbauen der Felder für andere Profile
 function create_other_profile(&$form, $row, $defaultValues) {
 
+    //Ein Fieldset mit Rahmen soll um die Felder für ein anderes Profil gelegt werden
     $form['other_profiles'][$row]['wrapper_start'] = array(
         '#markup' => '<fieldset><div class="fieldset-wrapper">'
     );
+
     $form['other_profiles'][$row]['choose_portal'] = array(
-        '#type' => 'select', //you can find a list of available types in the form api
+        '#type' => 'select',
         '#title' => t('Portal'),
         '#options' => array(
             SELECT_DEFAULT => SELECT_DEFAULT,
@@ -784,18 +791,20 @@ function create_other_profile(&$form, $row, $defaultValues) {
     );
 }
 
+//Funktion zum Aufbauen der Felder für Hobbies
 function create_hobbie(&$form, $row, $defaultValue) {
 
     $form['hobbies'][$row]['hobbies_input'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
+        '#type' => 'textfield',
         '#default_value' => $defaultValue,
     );
 }
 
+//Funktion zum Aufbauen der Felder für Interessen
 function create_interest(&$form, $row, $defaultValue) {
 
     $form['interests'][$row]['interests_select'] = array(
-        '#type' => 'select', //you can find a list of available types in the form api
+        '#type' => 'select',
         '#options' => array(
             SELECT_DEFAULT => SELECT_DEFAULT,
             t('Betriebswirtschaft') => t('Betriebswirtschaft'),
@@ -813,27 +822,29 @@ function create_interest(&$form, $row, $defaultValue) {
 
 }
 
+//Funktion zum Aufbauen der Felder für Auszeichnungen
 function create_award(&$form, $row, $defaultValue) {
 
     $form['awards'][$row]['awards_input'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
+        '#type' => 'textfield',
         '#default_value' => $defaultValue,
     );
 
     $form['awards'][$row]['awards_input']['#attributes']['placeholder'] = t('z.B. eine Auszeichnung für "Jugend Forscht" Projekte erhalten');
 }
 
+//Funktion zum Aufbauen der Felder für Organisationen
 function create_organisation(&$form, $row, $defaultValue) {
 
     $form['organisations'][$row]['organisations_input'] = array(
-        '#type' => 'textfield', //you can find a list of available types in the form api
+        '#type' => 'textfield',
         '#default_value' => $defaultValue,
     );
 
     $form['organisations'][$row]['organisations_input']['#attributes']['placeholder'] = t('z.B. Engagement bei der freiwilligen Feuerwehr');
 }
 
-
+//Callback Funktionen, die von den "Mehr" Buttons benötigt wird und immer den passenden Teil des Form-Arrays zurückgibt
 function callback_jf_projects($form, &$form_state) {
     return $form['jf_projects'];
 }
@@ -866,14 +877,17 @@ function callback_organisations($form, &$form_state) {
     return $form['organisations'];
 }
 
-
+//Funktion zum Validieren der Form, bevor diese in der DB gespeichert wird
 function extended_user_profile_form_validate($form, &$form_state) {
+
+    //Überprüfen, ob in der PLZ nur Zahlen stehen
     if (!empty($form_state['values']['zip_code'])) {
         if (!preg_match('/^[0-9]+$/', $form_state['values']['zip_code'])) {
             form_set_error('zip_code', t('Postleitzahl darf nur Zahlen enthalten.'));
         }
     }
 
+    //Überprüfen, ob ein gültiger Link bei den Portalen angegeben wurde
     $index = 0;
     foreach ($form_state['values']['other_profiles'] as $value) {
         if (isset($value['portal_link'])) {
@@ -884,16 +898,20 @@ function extended_user_profile_form_validate($form, &$form_state) {
         $index++;
     }
 
+    //Bild in Variable laden und vorher Überprüfen, ob es sich um ein Bild mit dem richtigen Format handelt
     $file = file_save_upload('profile_image_upload', array(
         'file_validate_is_image' => array(),
         'file_validate_extensions' => array('png gif jpg jpeg'),
     ));
 
+    //Wenn die Variable gesetzt ist, das Bild an den richtigen Ort verschieben
     if ($file != null) {
         if ($file) {
             if ($file = file_move($file, 'public://profile_images')) {
+                //Status auf permanent setzen, sonst wird es von Drupal nach 6 Stunden wieder gelöscht
                 $file->status = FILE_STATUS_PERMANENT;
 
+                //Dateiinformationen abspeichern und wieder in $form_state schreiben, sodass die submit Funktion auf die Informationen der Datei zugreifen kann
                 file_save($file);
                 $form_state['values']['profile_image_upload'] = $file;
             } else {
@@ -905,11 +923,15 @@ function extended_user_profile_form_validate($form, &$form_state) {
     }
 }
 
+//Funktion wird aufgerufen, wenn der Button fürs Löschen des Bildes benutzt wird
 function delete_image_button_submit($form, &$form_state) {
+    //Datei laden
     $file = file_load($form_state['values']['profile_image_id']);
 
+    //Datei löschen
     file_delete($file);
 
+    //Eintrag in der Datenbank anpassen, damit dort nicht noch die alte Image ID steht
     db_update('extended_user_profile')
         ->fields(array(
             'image_id' => 0,
@@ -918,10 +940,12 @@ function delete_image_button_submit($form, &$form_state) {
         ->execute();
 }
 
+//Funktion zum Abspeichern der Informationen in der DB
 function save_button_submit($form, &$form_state) {
 
     $jfProjects = array();
 
+    //Alle Felder iterieren, den Inhalt überprüfen, dass dieser nicht leer oder auf "- auswählen -" steht und dem Array hinzufügen
     foreach ($form_state['values']['jf_projects'] as $value) {
         if (isset($value['jf_projects_select'])) {
             if ($value['jf_projects_select'] != SELECT_DEFAULT) {
@@ -933,6 +957,7 @@ function save_button_submit($form, &$form_state) {
 
     $otherProjects = array();
 
+    //Alle Felder iterieren, den Inhalt überprüfen, dass dieser nicht leer oder auf "- auswählen -" steht und dem Array hinzufügen
     foreach ($form_state['values']['other_projects'] as $value) {
         if (isset($value['other_projects_input'])) {
             if (!empty($value['other_projects_input'])) {
@@ -944,6 +969,7 @@ function save_button_submit($form, &$form_state) {
 
     $visitedSchools = array();
 
+    //Alle Felder iterieren, den Inhalt überprüfen, dass dieser nicht leer oder auf "- auswählen -" steht und dem Array hinzufügen
     foreach ($form_state['values']['visited_schools'] as $value) {
         if (isset($value['visited_schools_select'])) {
             if ($value['visited_schools_select'] != SELECT_DEFAULT) {
@@ -955,6 +981,7 @@ function save_button_submit($form, &$form_state) {
 
     $otherProfiles = array();
 
+    //Alle Felder iterieren, den Inhalt überprüfen, dass dieser nicht leer oder auf "- auswählen -" steht und dem Array hinzufügen
     foreach ($form_state['values']['other_profiles'] as $value) {
         if (isset($value['choose_portal'])) {
             if ($value['choose_portal'] != SELECT_DEFAULT && !empty($value['portal_link'])) {
@@ -969,6 +996,7 @@ function save_button_submit($form, &$form_state) {
 
     $hobbies = array();
 
+    //Alle Felder iterieren, den Inhalt überprüfen, dass dieser nicht leer oder auf "- auswählen -" steht und dem Array hinzufügen
     foreach ($form_state['values']['hobbies'] as $value) {
         if (isset($value['hobbies_input'])) {
             if (!empty($value['hobbies_input'])) {
@@ -980,6 +1008,7 @@ function save_button_submit($form, &$form_state) {
 
     $interests = array();
 
+    //Alle Felder iterieren, den Inhalt überprüfen, dass dieser nicht leer oder auf "- auswählen -" steht und dem Array hinzufügen
     foreach ($form_state['values']['interests'] as $value) {
         if (isset($value['interests_select'])) {
             if ($value['interests_select'] != SELECT_DEFAULT) {
@@ -991,6 +1020,7 @@ function save_button_submit($form, &$form_state) {
 
     $awards = array();
 
+    //Alle Felder iterieren, den Inhalt überprüfen, dass dieser nicht leer oder auf "- auswählen -" steht und dem Array hinzufügen
     foreach ($form_state['values']['awards'] as $value) {
         if (isset($value['awards_input'])) {
             if (!empty($value['awards_input'])) {
@@ -1002,6 +1032,7 @@ function save_button_submit($form, &$form_state) {
 
     $organisations = array();
 
+    //Alle Felder iterieren, den Inhalt überprüfen, dass dieser nicht leer oder auf "- auswählen -" steht und dem Array hinzufügen
     foreach ($form_state['values']['organisations'] as $value) {
         if (isset($value['organisations_input'])) {
             if (!empty($value['organisations_input'])) {
@@ -1011,15 +1042,19 @@ function save_button_submit($form, &$form_state) {
         }
     }
 
+    //Standardmäßig image ID auf 0 setzen
     $imageID = 0;
 
+    //Wenn ein Bild bereits existiert, dann steht die ID in cv_image_id drin und wird in $imageID geladen
     if (isset($form_state['values']['profile_image_id'])) {
         $imageID = $form_state['values']['profile_image_id'];
     }
 
+    //Wenn ein Bild neu hochgeladen wurde, dann soll diese ID abgespeichert werden
     if (isset($form_state['values']['profile_image_upload']->fid)) {
         $imageID = $form_state['values']['profile_image_upload']->fid;
 
+        //Bei einem neuen Bild soll das alte Bild, falls vorhanden, vorher gelöscht werden
         if (isset($form_state['values']['profile_image_id'])) {
             $file = file_load($form_state['values']['profile_image_id']);
 
@@ -1027,14 +1062,14 @@ function save_button_submit($form, &$form_state) {
         }
     }
 
+    //Überprüfen, ob für den Benutzer bereits ein Eintrag in der Tabelle existiert
     $result = db_select('extended_user_profile', 'ex')
         ->fields('ex', array('user_id'))
         ->condition('user_id', $form_state['values']['profile_user_id'], '=')
         ->execute();
 
+    //Existiert noch kein Eintrag, dann einen neuen Erstellen
     if (!$result->fetchAssoc()) {
-
-        // Here u can insert Your custom form values into your custom table.
         db_insert('extended_user_profile')
             ->fields(array(
                 'user_id' => $form_state['values']['profile_user_id'],
@@ -1064,6 +1099,7 @@ function save_button_submit($form, &$form_state) {
         drupal_set_message(t('Informationen wurden gespeichert.'));
 
     } else {
+        //Existiert bereits ein Eintrag, dann soll dieser aktualisiert werden
         db_update('extended_user_profile')
             ->fields(array(
                 'image_id' => $imageID,

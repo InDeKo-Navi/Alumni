@@ -1,12 +1,11 @@
 
-/* Style the tab */
+/* Tabs für das Benutzerprofil */
 div.tab {
     overflow: hidden;
     border: 1px solid #ccc;
     background-color: #f1f1f1;
 }
 
-/* Style the buttons inside the tab */
 div.tab .tablinks {
     background-color: inherit;
     float: left;
@@ -17,17 +16,14 @@ div.tab .tablinks {
     transition: 0.3s;
 }
 
-/* Change background color of buttons on hover */
 div.tab .tablinks:hover {
     background-color: #ddd;
 }
 
-/* Create an active/current tablink class */
 div.tab .tablinks.active {
     background-color: #ccc;
 }
 
-/* Style the tab content */
 .tabcontent {
     display: none;
     padding: 6px 12px;
@@ -36,8 +32,7 @@ div.tab .tablinks.active {
     //position: relative;
 }
 
-
-/* General CSS */
+/* Allgemeines CSS */
 
 input.form-text {
     width: 250px;
@@ -49,7 +44,7 @@ textarea.form-textarea {
 }
 
 
-/* User Profile CSS */
+/* Benutzerprofil CSS */
 .v-separator {
     float: left;
     //position: absolute;
@@ -103,75 +98,60 @@ textarea.form-textarea {
     clear: left;
 }
 
-@media screen and (max-width: 800px) {
 
-    #sep2 {
-        display: none;
-    }
 
-    .general-right-container {
-        border-top: 1px solid #ccc;
-        border-left: none;
-        clear: left;
-        float: none;
-        padding-top: 15px;
-    }
+/* Lebenslauf CSS */
 
+.float-btn {
+    float: left;
 }
-
-@media screen and (max-width: 640px) {
-    .v-separator{
-        display: none;
-    }
-
-    .general-left-container {
-        float: none;
-    }
-
-    .general-middle-container {
-        border-top: 1px solid #ccc;
-        float: none;
-        width: 100%;
-        padding-top: 15px;
-    }
-
-    .general-right-container {
-        border-top: 1px solid #ccc;
-        float: none;
-        padding-top: 15px;
-    }
-
-    .general-left-container .picture-alternative {
-        margin-top: 15px;
-        margin-bottom: 15px;
-        margin-left: 35px;
-    }
-
-    .general-left-container > img{
-        margin-left: 50px;
-        margin-bottom: 10px;
-    }
-
-    input.form-text {
-        width: 200px;
-    }
-
-    textarea.form-textarea {
-        width: 200px;
-        height: 200px;
-    }
-
-}
-
-/* CV CSS */
 
 .cv-container {
     position: relative;
     width: 100%;
-    height: 500px;
+    min-height: 500px;
 }
 
 .cv-picture-container {
-    position: absolute;
-    right: 0;
+    float: right;
+    margin-right: 0;
 }
+
+.cv-page-title {
+    font-size: 22px;
+    font-weight: bold;
+    margin-top: 50px;
+}
+
+.cv-headline {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.weak-bold {
+    font-weight: 700;
+}
+
+.cv-table {
+    display: table;
+    margin-bottom: 20px;
+    page-break-inside: avoid; /* wichtig, damit dompdf innerhalb der Tabelle keinen automatischen Seitenumbruch einbaut */
+}
+
+.cv-row {
+    display: table-row;
+}
+
+.cv-cell {
+    display: table-cell;
+}
+
+.cell-left {
+    width: 250px;
+}
+
+.page-user-usercv .page-title {
+    display: none;
+}
+
+

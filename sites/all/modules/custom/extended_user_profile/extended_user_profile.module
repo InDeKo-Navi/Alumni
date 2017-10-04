@@ -1,21 +1,14 @@
 <?php
 
-/**
- * Implements hook_theme().
- */
-/*function extended_user_profile_theme() {
-    return array(
-        'extended_user_profile_thumb_upload' => array(
-            'render element' => 'element',
-        )
-    );
-}*/
-
+//Konstanten definieren
 define('SELECT_DEFAULT', t('- auswählen -'));
 define('NO_INDICATION_DEFAULT', t('- keine Angabe -'));
 
+
+//Funktion zum Erzeugen der intern Links für Drupal
 function extended_user_profile_menu() {
 
+    //Überprüfen, ob die Tabellen in der Datenbank existieren und ggf. diese erstellen
     $schema = extended_user_profile_dbschema();
     if(!db_table_exists('extended_user_profile')) {
         db_create_table('extended_user_profile', $schema['extended_user_profile']);
@@ -27,6 +20,7 @@ function extended_user_profile_menu() {
 
     $items = array();
 
+    //Item für Ansicht des Benutzerprofiles definieren
     $items['user/%user_uid/userprofile'] = array( //this creates a URL that will call this form at "examples/form-example"
         'title' => t('Nutzerprofil'), //page title
         'page callback' => 'display_userprofile', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
@@ -36,6 +30,7 @@ function extended_user_profile_menu() {
         'menu_name' => 'main-menu',
     );
 
+    //Item für Editieren des Benutzerprofiles definieren
     $items['user/%user_uid/userprofile/edit'] = array( //this creates a URL that will call this form at "examples/form-example"
         'title' => t('Nutzerprofil bearbeiten'), //page title
         'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
@@ -46,6 +41,7 @@ function extended_user_profile_menu() {
         'type' => MENU_SUGGESTED_ITEM,
     );
 
+    //Item für Ansicht des Lebenslaufs definieren
     $items['user/%user_uid/usercv'] = array( //this creates a URL that will call this form at "examples/form-example"
         'title' => t('Lebenslauf'), //page title
         'description' => 'A form to mess around with.',
@@ -56,6 +52,19 @@ function extended_user_profile_menu() {
         'menu_name' => 'main-menu',
     );
 
+    //Item für Ansicht des PDFs des Benutzerprofiles definieren
+    $items['user/%user_uid/usercv/pdf'] = array( //this creates a URL that will call this form at "examples/form-example"
+        'title' => t('Lebenslauf exportieren'), //page title
+        'description' => 'A form to mess around with.',
+        'page callback' => 'print_usercv', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+        'page arguments' => array(1), //put the name of the form here
+        'access callback' => 'user_is_logged_in',
+        'file' => 'display_usercv.pages.inc',
+        'menu_name' => 'main-menu',
+        'type' => MENU_SUGGESTED_ITEM,
+    );
+
+    //Item für Editieren des Benutzerprofiles definieren
     $items['user/%user_uid/usercv/edit'] = array( //this creates a URL that will call this form at "examples/form-example"
         'title' => t('Lebenslauf bearbeiten'), //page title
         'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
@@ -69,6 +78,7 @@ function extended_user_profile_menu() {
     return $items;
 }
 
+//Funktion wird benötigt, damit der Platzhalter %user_uid aufgelöst werden kann
 function user_uid_to_arg($arg) {
     // Give back the current user uid when called from eg. tracker, aka.
     // with an empty arg. Also use the current user uid when called from
@@ -76,6 +86,7 @@ function user_uid_to_arg($arg) {
     return empty($arg) || $arg == '%' ? $GLOBALS['user']->uid : $arg;
 }
 
+//Definieren des Arrays für die Datenbanktabellen und der Spalten
 function extended_user_profile_dbschema() {
     $schema = array();
     $schema['extended_user_profile'] = array(
@@ -232,6 +243,11 @@ function extended_user_profile_dbschema() {
                 'length' => 255,
                 'default' => ''
             ),
+            'street' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'default' => ''
+            ),
             'city' => array(
                 'type' => 'varchar',
                 'length' => 255,
@@ -242,6 +258,18 @@ function extended_user_profile_dbschema() {
                 'default' => 0,
             ),
             'telephone' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'default' => ''
+            ),
+
+            'nationality' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'default' => ''
+            ),
+
+            'family' => array(
                 'type' => 'varchar',
                 'length' => 255,
                 'default' => ''
