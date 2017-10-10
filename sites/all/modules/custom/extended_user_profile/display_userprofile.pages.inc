@@ -396,6 +396,7 @@ function display_userprofile($user_id) {
         '#markup' => '</div>',
     );
 
+
     //Wenn der Benutzer sein eigenes Profil aufruft oder ein Administrator das Profil aufruft, wird ein Editierbutton angezeigt
     if ($user_id == $user->uid || user_has_role(3, user_load($user->uid))) {
         $content['edit_button'] = array(

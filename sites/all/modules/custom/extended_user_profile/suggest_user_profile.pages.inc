@@ -105,9 +105,6 @@ function get_suggestions_form($form, $form_state) {
     return $form;
 }
 
-
-//________BUG BEI SCHULE VORSCHLAGEN; WENN ETWAS IN DEM SCHULFELD DRIN STEHT!!!!!!
-
 function save_suggest_school_validate($form, &$form_state) {
 
 

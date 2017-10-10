@@ -122,6 +122,7 @@ function extended_user_profile_menu() {
     );
 
     return $items;
+
 }
 
 //Funktion wird benötigt, damit der Platzhalter %user_uid aufgelöst werden kann

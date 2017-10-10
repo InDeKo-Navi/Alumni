@@ -369,6 +369,7 @@ function display_usercv ($user_id) {
         '#markup' => '</div>',
     );
 
+
     //Wenn der Benutzer seine eigene Seite aufruft oder ein Administrator dies tut, dann Buttons zum Editeren und Lebenslauf exportieren anzeigen
     if ($user_id == $user->uid || user_has_role(3, user_load($user->uid))) {
         $content['edit_button'] = array(

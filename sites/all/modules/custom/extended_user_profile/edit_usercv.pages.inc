@@ -1031,6 +1031,7 @@ function save_button_submit($form, &$form_state) {
             ->execute();
         drupal_set_message(t('Informationen wurden gespeichert.'));
 
+
     } else {
         //Existiert bereits ein Eintrag, dann soll dieser aktualisiert werden
         db_update('extended_user_profile_cv')

@@ -714,7 +714,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
 
 // Funktion für den Button, der zur 'JuFo-Projektdatenbank' verlinkt
 function jf_project_db_submit($form, &$form_state) {
-  drupal_goto('https://www.jugend-forscht.de/projektdatenbank.html');
+    drupal_goto('https://www.jugend-forscht.de/projektdatenbank.html');
 }
 
 //Funktion zum Aufbauen der Felder für jugend Forscht Projekte
