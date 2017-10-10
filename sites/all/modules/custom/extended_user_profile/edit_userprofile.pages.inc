@@ -197,10 +197,12 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
 
     //Button für Weiterleitung in die Jugend Forscht Datenbank
     $form['jf_projects']['jf_project_db'] = array(
-        '#type' => 'button',
+        '#type' => 'submit',
         '#value' => t('JuFo-Projektdatenbank'),
+        '#submit' => array('jf_project_db_submit'),
         '#weight' => 1001
     );
+
 
     //Button zum Vorschlagen eines Projektes
     $form['jf_projects']['suggest_project'] = array(
@@ -708,6 +710,11 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
 
     return $form;
 
+}
+
+// Funktion für den Button, der zur 'JuFo-Projektdatenbank' verlinkt
+function jf_project_db_submit($form, &$form_state) {
+  drupal_goto('https://www.jugend-forscht.de/projektdatenbank.html');
 }
 
 //Funktion zum Aufbauen der Felder für jugend Forscht Projekte
