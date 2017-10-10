@@ -18,6 +18,10 @@ function extended_user_profile_menu() {
         db_create_table('extended_user_profile_cv', $schema['extended_user_profile_cv']);
     }
 
+    if(!db_table_exists('extended_user_profile_suggestions')) {
+        db_create_table('extended_user_profile_suggestions', $schema['extended_user_profile_suggestions']);
+    }
+
     $items = array();
 
     //Item für Ansicht des Benutzerprofiles definieren
@@ -75,6 +79,48 @@ function extended_user_profile_menu() {
         'type' => MENU_SUGGESTED_ITEM,
     );
 
+    $items['suggestions'] = array(
+        'title' => t('Eingereichte Vorschläge'),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('get_suggestions_form'),
+        'access arguments' => array('access administration pages'),
+        'file' => 'suggest_user_profile.pages.inc',
+    );
+
+    $items['suggest/school'] = array(
+        'title' => t('Schule vorschlagen'),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('suggest_school_form'),
+        'access callback' => 'user_is_logged_in',
+        'file' => 'suggest_user_profile.pages.inc',
+    );
+
+    $items['admin/config/alumni'] = array(
+        'title' => t('Alumni'),
+        'position' => 'left',
+        'weight' => -25,
+        'page callback' => 'system_admin_menu_block_page',
+        'access arguments' => array('access administration pages'),
+    );
+
+    $items['admin/config/alumni/setprofileids'] = array(
+        'title' => t('IDs festlegen'),
+        'description' => t('IDs der Taxonomien für Projekte, Schulen etc. im Benutzerprofil festlegen.'),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('set_ids_form'),
+        'access arguments' => array('administer authentication'),
+        'file' => 'admin_settings.pages.inc',
+    );
+
+
+    $items['visitedschools/autocomplete'] = array(
+        'title' => '',
+        'description' => '',
+        'page callback' => 'visited_schools_autocomplete',
+        'access callback' => TRUE,
+        'file' => 'edit_userprofile.pages.inc',
+    );
+
     return $items;
 }
 
@@ -89,6 +135,28 @@ function user_uid_to_arg($arg) {
 //Definieren des Arrays für die Datenbanktabellen und der Spalten
 function extended_user_profile_dbschema() {
     $schema = array();
+
+    $schema['extended_user_profile_suggestions'] = array(
+        'description' => 'The table for extended_user_profile_suggestions',
+        'fields' => array(
+            'id' => array(
+                'type' => 'int',
+                'not null' => TRUE,
+                'default' => 0
+            ),
+            'category' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'default' => ''
+            ),
+            'name' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'default' => ''
+            ),
+        )
+    );
+
     $schema['extended_user_profile'] = array(
         'description' => 'The table for extended_user_profile',
         'fields' => array(

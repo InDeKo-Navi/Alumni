@@ -1,7 +1,6 @@
 <?php
 
 function extended_user_profile_form($form, &$form_state, $user_id) {
-
     //Überprüfen, ob ein Benutzer mit der ID existiert
     $userLoad = user_load($user_id);
 
@@ -307,8 +306,9 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     );
 
     $form['visited_schools']['suggest_school'] = array(
-        '#type' => 'button',
+        '#type' => 'submit',
         '#value' => t('Schule vorschlagen'),
+        '#submit' => array('suggest_school_submit'),
         '#weight' => 1001
     );
 
@@ -701,6 +701,7 @@ function extended_user_profile_form($form, &$form_state, $user_id) {
     $form['save_button'] = array(
         '#type' => 'submit',
         '#value' => t('Speichern'),
+        '#validate' => array('save_button_validate'),
         '#submit' => array('save_button_submit'),
         '#prefix' => '<br>',
     );
@@ -739,13 +740,8 @@ function create_other_project(&$form, $row, $defaultValue) {
 function create_visited_school(&$form, $row, $defaultValue) {
 
     $form['visited_schools'][$row]['visited_schools_select'] = array(
-        '#type' => 'select',
-        '#options' => array(
-            SELECT_DEFAULT => SELECT_DEFAULT,
-            t('Schule A') => t('Schule A'),
-            t('Schule B') => t('Schule B'),
-            t('Schule C') => t('Schule C'),
-        ),
+        '#type' => 'textfield',
+        '#autocomplete_path'=>'visitedschools/autocomplete',
         '#default_value' => $defaultValue,
     );
 }
@@ -877,8 +873,42 @@ function callback_organisations($form, &$form_state) {
     return $form['organisations'];
 }
 
+function visited_schools_autocomplete($string) {
+
+    $stringArr = preg_split('/ /', $string);
+
+    $matches = array();
+
+    $vocab = taxonomy_vocabulary_machine_name_load(variable_get('eup_school_machine_name'));
+    $vid = $vocab->vid;
+
+    $query = db_select('taxonomy_term_data', 'ttd');
+    $query->fields('ttd', array('tid', 'name'));
+    $query->join('taxonomy_term_hierarchy','tth' , 'ttd.tid = tth.tid');
+    $query->condition('ttd.vid', $vid, '=');
+
+    foreach ($stringArr as $string) {
+        if (!empty($string)) {
+            $query->condition('ttd.name', '%' . db_like($string) . '%', 'LIKE');
+        }
+    }
+    $query->condition('tth.parent', 0, '!=');
+    $query->range(0, 10);
+    $result = $query->execute();
+
+    foreach ($result as $term) {
+        $matches[check_plain($term -> name)] = check_plain($term -> name);
+    }
+
+    drupal_json_output($matches);
+}
+
 //Funktion zum Validieren der Form, bevor diese in der DB gespeichert wird
-function extended_user_profile_form_validate($form, &$form_state) {
+function save_button_validate($form, &$form_state) {
+
+    //CSS laden
+    drupal_add_css(drupal_get_path('module', 'extended_user_profile') . '/css/eup_custom.css', array('group' => CSS_DEFAULT));
+    drupal_add_css(drupal_get_path('module', 'extended_user_profile') . '/css/eup_media.css', array('group' => CSS_DEFAULT));
 
     //Überprüfen, ob in der PLZ nur Zahlen stehen
     if (!empty($form_state['values']['zip_code'])) {
@@ -921,6 +951,32 @@ function extended_user_profile_form_validate($form, &$form_state) {
             form_set_error('file', t('Kein Bild wurde hochgeladen.'));
         }
     }
+
+    //Überprüfen, ob die angegebene Schule in der Liste für gültige Schulen steht
+    $vocab = taxonomy_vocabulary_machine_name_load(variable_get('eup_school_machine_name'));
+    $vid = $vocab->vid;
+
+    $index = 0;
+    foreach ($form_state['values']['visited_schools'] as $value) {
+        if (!empty($value['visited_schools_select'])) {
+
+            $query = db_select('taxonomy_term_data', 'ttd');
+            $query->fields('ttd', array('tid', 'name'));
+            $query->condition('vid', $vid, '=');
+            $query->condition('name', $value['visited_schools_select'], '=');
+            $result = $query->execute();
+
+            if(!$result->fetchAssoc()) {
+                form_set_error('visited_schools][' . $index . '][visited_schools_select', t('Angegebene Schule ist ungültig.'));
+            }
+        }
+        $index++;
+    }
+
+}
+
+function suggest_school_submit($form, &$form_state) {
+    drupal_goto('suggest/school');
 }
 
 //Funktion wird aufgerufen, wenn der Button fürs Löschen des Bildes benutzt wird
@@ -972,7 +1028,7 @@ function save_button_submit($form, &$form_state) {
     //Alle Felder iterieren, den Inhalt überprüfen, dass dieser nicht leer oder auf "- auswählen -" steht und dem Array hinzufügen
     foreach ($form_state['values']['visited_schools'] as $value) {
         if (isset($value['visited_schools_select'])) {
-            if ($value['visited_schools_select'] != SELECT_DEFAULT) {
+            if (!empty($value['visited_schools_select'])) {
                 array_push($visitedSchools, $value['visited_schools_select']);
 
             }
