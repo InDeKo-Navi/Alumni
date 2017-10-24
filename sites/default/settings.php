@@ -250,9 +250,9 @@ $databases = array (
     'default' =>
     array (
       'database' => 'alumni_portal',
-      'username' => 'alumni_portal',
-      'password' => 'alumni.2017',
-      'host' => '147.172.96.41',
+      'username' => 'root',
+      'password' => 'root',
+      'host' => 'localhost',
       'port' => '',
       'driver' => 'mysql',
       'prefix' => '',
